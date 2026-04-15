@@ -493,9 +493,9 @@ let charts = {};
 async function loadData() {
   try {
     const [ben, otg, comp] = await Promise.all([
-      sbFetch('ig_posts?account_type=eq.ben&order=posted_at.desc&limit=100'),
-      sbFetch('ig_posts?account_type=eq.otg&order=posted_at.desc&limit=100'),
-      sbFetch('ig_posts?account_type=eq.competitor&order=likes_count.desc&limit=200')
+      sbFetch('ig_posts?account_type=eq.ben&order=posted_at.desc&limit=500'),
+      sbFetch('ig_posts?account_type=eq.otg&order=posted_at.desc&limit=500'),
+      sbFetch('ig_posts?account_type=eq.competitor&order=likes_count.desc&limit=500')
     ]);
     cache.ben = ben;
     cache.otg = otg;
@@ -888,7 +888,13 @@ function loadSample(type) {
 // ============================================================
 // INIT
 // ============================================================
-loadData().then(() => renderOverview());
+// Force fresh data every load
+async function init() {
+  cache.loaded = false;
+  await loadData();
+  renderOverview();
+}
+init();
 </script>
 </body>
 </html>
