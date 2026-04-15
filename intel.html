@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OTG Intel">
+<link rel="apple-touch-icon" href="icon.png">
+<title>OTG Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root {
+  --bg: #0a0a0f;
+  --surface: #111118;
+  --surface2: #17171f;
+  --border: #22222e;
+  --accent: #e8ff47;
+  --accent2: #ff6b35;
+  --accent3: #7c5cbf;
+  --text: #f0f0f5;
+  --muted: #6b6b7a;
+  --ben: #e8ff47;
+  --otg: #ff6b35;
+  --comp: #7c5cbf;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding-bottom: 80px;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(232,255,71,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,255,71,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.container { max-width: 1200px; margin: 0 auto; padding: 0 16px; position: relative; z-index: 1; }
+
+/* HEADER */
+header {
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+  position: sticky;
+  top: 0;
+  background: rgba(10,10,15,0.95);
+  backdrop-filter: blur(12px);
+  z-index: 100;
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo-tag { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 3px; text-transform: uppercase; }
+h1 { font-family: 'Syne', sans-serif; font-size: clamp(20px, 4vw, 32px); font-weight: 800; letter-spacing: -0.5px; }
+h1 span { color: var(--accent); }
+
+.sync-btn {
+  padding: 8px 16px;
+  background: var(--accent);
+  color: #0a0a0f;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.sync-btn:hover { background: #d4eb30; }
+.sync-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* TABS */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  background: var(--surface);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  padding: 7px 14px;
+  border-radius: 7px;
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tab.active { background: var(--accent); color: #0a0a0f; }
+
+/* PANELS */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* STATS GRID */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.stat-card.ben::before { background: var(--ben); }
+.stat-card.otg::before { background: var(--otg); }
+.stat-card.neutral::before { background: var(--accent3); }
+
+.stat-label { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+.stat-value { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; line-height: 1; }
+.stat-card.ben .stat-value { color: var(--ben); }
+.stat-card.otg .stat-value { color: var(--otg); }
+.stat-card.neutral .stat-value { color: var(--accent3); }
+.stat-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+/* SECTION TITLE */
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* CHART GRID */
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+@media (max-width: 600px) { .chart-grid { grid-template-columns: 1fr; } }
+
+.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.chart-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; margin-bottom: 12px; }
+.chart-wrap { position: relative; height: 200px; }
+
+/* PILLAR BARS */
+.pillar-list { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+.pillar-row { display: flex; flex-direction: column; gap: 4px; }
+.pillar-meta { display: flex; justify-content: space-between; font-size: 11px; font-family: 'DM Mono', monospace; }
+.pillar-name { color: var(--text); }
+.pillar-pct { color: var(--muted); }
+.pillar-bar-track { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.pillar-bar-fill { height: 100%; border-radius: 3px; transition: width 0.8s cubic-bezier(0.16,1,0.3,1); }
+
+/* POSTS TABLE */
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 20px; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 400px; }
+th { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 10px 12px; font-size: 12px; border-bottom: 1px solid rgba(34,34,46,0.4); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.post-caption { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11px; }
+.like-num { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+.badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-family: 'DM Mono', monospace; font-size: 9px; font-weight: 500; }
+.badge-ben { background: rgba(232,255,71,0.12); color: var(--ben); }
+.badge-otg { background: rgba(255,107,53,0.12); color: var(--otg); }
+.badge-comp { background: rgba(124,92,191,0.12); color: var(--accent3); }
+
+/* COMPARE GRID */
+.compare-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.compare-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+.compare-handle { font-family: 'DM Mono', monospace; font-size: 11px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.compare-metric { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
+.compare-metric:last-child { border-bottom: none; }
+.compare-metric-label { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 9px; }
+.compare-metric-val { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; }
+
+/* UPLOAD SECTION */
+.upload-section { background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.upload-section:hover { border-color: var(--accent); }
+.upload-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.upload-desc { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.6; }
+textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 11px; padding: 10px; resize: vertical; min-height: 90px; margin-bottom: 10px; outline: none; transition: border-color 0.2s; }
+textarea:focus { border-color: var(--accent); }
+textarea::placeholder { color: var(--muted); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { padding: 9px 16px; border-radius: 8px; border: none; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+.btn-primary { background: var(--accent); color: #0a0a0f; }
+.btn-primary:hover { background: #d4eb30; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+.alert { padding: 10px 14px; border-radius: 8px; font-size: 12px; margin-top: 8px; display: none; }
+.alert-success { background: rgba(232,255,71,0.1); border: 1px solid rgba(232,255,71,0.3); color: var(--accent); }
+.alert-error { background: rgba(255,107,53,0.1); border: 1px solid rgba(255,107,53,0.3); color: var(--otg); }
+
+/* STATUS BAR */
+.status-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(17,17,24,0.97);
+  border-top: 1px solid var(--border);
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  z-index: 200;
+  backdrop-filter: blur(12px);
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* INSIGHT CARDS */
+.insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+@media (max-width: 500px) { .insights-grid { grid-template-columns: 1fr; } }
+.insight-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+.insight-icon { font-size: 18px; margin-bottom: 8px; }
+.insight-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+.insight-body { font-size: 11px; color: var(--muted); line-height: 1.7; }
+.insight-body strong { color: var(--text); }
+
+/* LOADING */
+.loading { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; gap: 10px; }
+.spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.stat-card, .chart-card, .insight-card, .compare-card { animation: fadeUp 0.35s ease both; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="logo-tag">// Social Intel</div>
+      <h1>OTG <span>&</span> BEN</h1>
+    </div>
+    <button class="sync-btn" id="syncBtn" onclick="syncAllData()">⟳ Sync</button>
+  </div>
+</header>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('overview', this)">Overview</button>
+    <button class="tab" onclick="switchTab('ben', this)">@benben_daman</button>
+    <button class="tab" onclick="switchTab('otg', this)">@offthegrid.sg</button>
+    <button class="tab" onclick="switchTab('competitors', this)">Competitors</button>
+    <button class="tab" onclick="switchTab('update', this)">Update Data</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="panel active" id="panel-overview">
+    <div id="overview-loading" class="loading"><div class="spinner"></div>Loading from Supabase...</div>
+    <div id="overview-content" style="display:none">
+      <div class="section-title">Key Metrics</div>
+      <div class="stats-grid" id="overview-stats"></div>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-title">Avg Likes — All Accounts</div>
+          <div class="chart-wrap"><canvas id="compareChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Content Pillar Split — @benben_daman</div>
+          <div class="pillar-list" id="benPillars"></div>
+        </div>
+      </div>
+      <div class="section-title">Top Posts — All Accounts</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Account</th><th>Caption</th><th>Likes</th><th>Comments</th></tr></thead>
+          <tbody id="topPostsBody"></tbody>
+        </table>
+      </div>
+      <div class="section-title">Auto Insights</div>
+      <div class="insights-grid" id="insightsGrid"></div>
+    </div>
+  </div>
+
+  <!-- BEN -->
+  <div class="panel" id="panel-ben">
+    <div id="ben-loading" class="loading"><div class="spinner"></div>Loading...</div>
+    <div id="ben-content" style="display:none">
+      <div class="section-title">@benben_daman</div>
+      <div class="stats-grid" id="ben-stats"></div>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-title">Likes Over Time</div>
+          <div class="chart-wrap"><canvas id="benTrendChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Performance by Content Type</div>
+          <div class="chart-wrap"><canvas id="benTypeChart"></canvas></div>
+        </div>
+      </div>
+      <div class="section-title">All Posts</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Caption</th><th>Type</th><th>Likes</th><th>Comments</th><th>Date</th></tr></thead>
+          <tbody id="benPostsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- OTG -->
+  <div class="panel" id="panel-otg">
+    <div id="otg-loading" class="loading"><div class="spinner"></div>Loading...</div>
+    <div id="otg-content" style="display:none">
+      <div class="section-title">@offthegrid.sg</div>
+      <div class="stats-grid" id="otg-stats"></div>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-title">Likes Over Time</div>
+          <div class="chart-wrap"><canvas id="otgTrendChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Posts Per Month</div>
+          <div class="chart-wrap"><canvas id="otgFreqChart"></canvas></div>
+        </div>
+      </div>
+      <div class="section-title">All Posts</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Caption</th><th>Likes</th><th>Comments</th><th>Date</th></tr></thead>
+          <tbody id="otgPostsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPETITORS -->
+  <div class="panel" id="panel-competitors">
+    <div id="comp-loading" class="loading"><div class="spinner"></div>Loading...</div>
+    <div id="comp-content" style="display:none">
+      <div class="section-title">Competitor Benchmarks</div>
+      <div class="compare-grid" id="competitorGrid"></div>
+      <div class="chart-card" style="margin-bottom:20px">
+        <div class="chart-title">Average Likes — All Tracked Accounts</div>
+        <div class="chart-wrap" style="height:260px"><canvas id="compBarChart"></canvas></div>
+      </div>
+      <div class="section-title">Top Competitor Posts</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Account</th><th>Caption</th><th>Likes</th><th>Comments</th></tr></thead>
+          <tbody id="compPostsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPDATE DATA -->
+  <div class="panel" id="panel-update">
+    <div class="upload-section">
+      <div class="upload-title">📥 Update @benben_daman</div>
+      <div class="upload-desc">Run Apify Instagram Post Scraper on <strong>benben_daman</strong> → export JSON → paste below. Data saves directly to Supabase.</div>
+      <textarea id="benJson" placeholder='[{"caption":"...","ownerUsername":"benben_daman","likesCount":123,"commentsCount":5,"timestamp":"2026-04-01T10:00:00.000Z","url":"https://..."}]'></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="benUploadBtn" onclick="uploadData('ben')">Save to Database</button>
+        <button class="btn btn-secondary" onclick="loadSample('ben')">Load Sample</button>
+      </div>
+      <div class="alert alert-success" id="benAlert">✓ Saved to Supabase successfully!</div>
+      <div class="alert alert-error" id="benError">✗ Error. Check JSON format.</div>
+    </div>
+
+    <div class="upload-section">
+      <div class="upload-title">📥 Update @offthegrid.sg</div>
+      <div class="upload-desc">Run Apify on <strong>offthegrid.sg</strong> → export JSON → paste below.</div>
+      <textarea id="otgJson" placeholder='[{"caption":"...","ownerUsername":"offthegrid.sg","likesCount":123,...}]'></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="otgUploadBtn" onclick="uploadData('otg')">Save to Database</button>
+        <button class="btn btn-secondary" onclick="loadSample('otg')">Load Sample</button>
+      </div>
+      <div class="alert alert-success" id="otgAlert">✓ Saved to Supabase successfully!</div>
+      <div class="alert alert-error" id="otgError">✗ Error. Check JSON format.</div>
+    </div>
+
+    <div class="upload-section">
+      <div class="upload-title">📥 Update Competitors</div>
+      <div class="upload-desc">Run Apify on all competitor accounts → combine into one JSON array → paste below. Old competitor data will be replaced.</div>
+      <textarea id="compJson" placeholder='[{"caption":"...","ownerUsername":"jambojourneys","likesCount":309,...},{"caption":"...","ownerUsername":"wheelfret",...}]'></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="compUploadBtn" onclick="uploadData('competitor')">Save to Database</button>
+      </div>
+      <div class="alert alert-success" id="compAlert">✓ Saved to Supabase successfully!</div>
+      <div class="alert alert-error" id="compError">✗ Error. Check JSON format.</div>
+    </div>
+
+    <div class="insight-card">
+      <div class="insight-icon">📱</div>
+      <div class="insight-title">Add to iPhone Home Screen</div>
+      <div class="insight-body">
+        1. Open this page in <strong>Safari</strong><br>
+        2. Tap the <strong>Share button</strong> (box with arrow)<br>
+        3. Scroll down → tap <strong>"Add to Home Screen"</strong><br>
+        4. Name it <strong>"OTG Intel"</strong> → tap Add<br>
+        5. It appears on your home screen like an app — one tap to open 🎉
+      </div>
+    </div>
+
+    <div class="insight-card" style="margin-top:10px">
+      <div class="insight-icon">⚡</div>
+      <div class="insight-title">Monthly Update Workflow</div>
+      <div class="insight-body">
+        1. Open <strong>Apify.com</strong> → run saved scraper on benben_daman<br>
+        2. Export JSON → paste in Update tab → Save to Database<br>
+        3. Repeat for offthegrid.sg<br>
+        4. Competitors: run quarterly, paste combined JSON<br>
+        5. Tap <strong>Sync</strong> button — dashboard refreshes from database ✓
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <span><span class="status-dot"></span>Connected to Supabase</span>
+  <span id="lastSync">Never synced</span>
+</div>
+
+<script>
+// ============================================================
+// SUPABASE CONFIG
+// ============================================================
+const SUPABASE_URL = 'https://ucynpldegkcvrkytnzst.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVjeW5wbGRlZ2tjdnJreXRuenN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDExODk0OTcsImV4cCI6MjA1Njc2NTQ5N30.IvuuAUBZLkoO40VTW5aNE91XpH_IgtAVS-VhEQTA65E';
+
+const headers = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=minimal'
+};
+
+async function sbFetch(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: { ...headers, ...options.headers },
+    ...options
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  if (res.status === 204) return [];
+  return res.json();
+}
+
+// ============================================================
+// DATA CACHE
+// ============================================================
+let cache = { ben: [], otg: [], comp: [], loaded: false };
+let charts = {};
+
+// ============================================================
+// LOAD DATA FROM SUPABASE
+// ============================================================
+async function loadData() {
+  try {
+    const [ben, otg, comp] = await Promise.all([
+      sbFetch('ig_posts?account_type=eq.ben&order=posted_at.desc&limit=100'),
+      sbFetch('ig_posts?account_type=eq.otg&order=posted_at.desc&limit=100'),
+      sbFetch('ig_posts?account_type=eq.competitor&order=likes_count.desc&limit=200')
+    ]);
+    cache.ben = ben;
+    cache.otg = otg;
+    cache.comp = comp;
+    cache.loaded = true;
+    document.getElementById('lastSync').textContent = 'Synced ' + new Date().toLocaleTimeString('en-SG');
+    return true;
+  } catch (e) {
+    console.error('Load error:', e);
+    return false;
+  }
+}
+
+// ============================================================
+// UPLOAD DATA TO SUPABASE
+// ============================================================
+async function uploadData(type) {
+  const jsonEl = document.getElementById(type === 'ben' ? 'benJson' : type === 'otg' ? 'otgJson' : 'compJson');
+  const btnEl = document.getElementById(type === 'ben' ? 'benUploadBtn' : type === 'otg' ? 'otgUploadBtn' : 'compUploadBtn');
+  const successEl = document.getElementById(type === 'ben' ? 'benAlert' : type === 'otg' ? 'otgAlert' : 'compAlert');
+  const errorEl = document.getElementById(type === 'ben' ? 'benError' : type === 'otg' ? 'otgError' : 'compError');
+
+  let parsed;
+  try { parsed = JSON.parse(jsonEl.value); }
+  catch { showAlert(errorEl); return; }
+
+  btnEl.disabled = true;
+  btnEl.textContent = 'Saving...';
+
+  try {
+    // Delete existing posts for this account type
+    await sbFetch(`ig_posts?account_type=eq.${type === 'competitor' ? 'competitor' : type}`, {
+      method: 'DELETE',
+      headers: { 'Prefer': 'return=minimal' }
+    });
+
+    // Map Apify JSON to our schema
+    const accountType = type === 'competitor' ? 'competitor' : type;
+    const rows = parsed
+      .filter(p => p.likesCount > 0)
+      .map(p => ({
+        username: p.ownerUsername || '',
+        account_type: accountType,
+        caption: p.caption || '',
+        likes_count: p.likesCount || 0,
+        comments_count: p.commentsCount || 0,
+        post_url: p.url || '',
+        posted_at: p.timestamp || null
+      }));
+
+    // Insert in batches of 50
+    for (let i = 0; i < rows.length; i += 50) {
+      await sbFetch('ig_posts', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=minimal' },
+        body: JSON.stringify(rows.slice(i, i + 50))
+      });
+    }
+
+    showAlert(successEl);
+    await syncAllData();
+  } catch (e) {
+    console.error(e);
+    showAlert(errorEl);
+  } finally {
+    btnEl.disabled = false;
+    btnEl.textContent = 'Save to Database';
+  }
+}
+
+function showAlert(el) {
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
+}
+
+// ============================================================
+// SYNC BUTTON
+// ============================================================
+async function syncAllData() {
+  const btn = document.getElementById('syncBtn');
+  btn.disabled = true;
+  btn.textContent = '⟳ Syncing...';
+  await loadData();
+  renderCurrentTab();
+  btn.disabled = false;
+  btn.textContent = '⟳ Sync';
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function avg(arr) {
+  const v = arr.filter(x => x > 0);
+  return v.length ? v.reduce((a,b) => a+b, 0) / v.length : 0;
+}
+
+function fmtDate(ts) {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleDateString('en-SG', { month:'short', day:'numeric', year:'2-digit' });
+}
+
+function categorise(caption) {
+  if (!caption) return 'Personal / Life';
+  const c = caption.toLowerCase();
+  if ((/aia|mdrt|district|advisory|financial|odyssey|advisor|insurance/.test(c)) && /offthegrid|otg/.test(c)) return 'FA × OTG Blend';
+  if (/aia|mdrt|district|advisory|financial|odyssey|advisor|insurance/.test(c)) return 'FA / Career';
+  if (/offthegrid|otg|off the grid/.test(c)) return 'OTG';
+  if (/norway|xinjiang|china|komodo|liveaboard|guiyang|bali|cebu|tibet|travel|trip|japan|korea/.test(c)) return 'Personal Travel';
+  return 'Personal / Life';
+}
+
+function destroyChart(name) {
+  if (charts[name]) { charts[name].destroy(); delete charts[name]; }
+}
+
+const pillarColors = {
+  'FA / Career': '#e8ff47',
+  'OTG': '#ff6b35',
+  'Personal Travel': '#7c5cbf',
+  'FA × OTG Blend': '#00d4ff',
+  'Personal / Life': '#888'
+};
+
+const accentColors = ['#7c5cbf','#00d4ff','#ff9f47','#ff6b95','#47ffd4','#ff4747','#47b8ff'];
+
+// ============================================================
+// RENDER OVERVIEW
+// ============================================================
+function renderOverview() {
+  const show = () => {
+    document.getElementById('overview-loading').style.display = 'none';
+    document.getElementById('overview-content').style.display = 'block';
+  };
+
+  if (!cache.loaded) { loadData().then(() => { renderOverview(); }); return; }
+
+  const benAvgL = avg(cache.ben.map(p => p.likes_count));
+  const otgAvgL = avg(cache.otg.map(p => p.likes_count));
+  const benAvgC = avg(cache.ben.map(p => p.comments_count));
+  const otgAvgC = avg(cache.otg.map(p => p.comments_count));
+  const diff = otgAvgL > 0 ? Math.round(((benAvgL - otgAvgL) / otgAvgL) * 100) : 0;
+  const compAccounts = [...new Set(cache.comp.map(p => p.username))];
+
+  document.getElementById('overview-stats').innerHTML = `
+    <div class="stat-card ben"><div class="stat-label">Ben Avg Likes</div><div class="stat-value">${Math.round(benAvgL)}</div><div class="stat-sub">${cache.ben.length} posts</div></div>
+    <div class="stat-card ben"><div class="stat-label">Ben Avg Comments</div><div class="stat-value">${benAvgC.toFixed(1)}</div></div>
+    <div class="stat-card otg"><div class="stat-label">OTG Avg Likes</div><div class="stat-value">${Math.round(otgAvgL)}</div><div class="stat-sub">${cache.otg.length} posts</div></div>
+    <div class="stat-card otg"><div class="stat-label">OTG Avg Comments</div><div class="stat-value">${otgAvgC.toFixed(1)}</div></div>
+    <div class="stat-card neutral"><div class="stat-label">Ben vs OTG</div><div class="stat-value">${diff > 0 ? '+' : ''}${diff}%</div><div class="stat-sub">likes advantage</div></div>
+    <div class="stat-card neutral"><div class="stat-label">Competitors</div><div class="stat-value">${compAccounts.length}</div><div class="stat-sub">accounts tracked</div></div>
+  `;
+
+  // Compare chart
+  const compAvgs = compAccounts.map(u => avg(cache.comp.filter(p => p.username === u).map(p => p.likes_count)));
+  destroyChart('compare');
+  charts.compare = new Chart(document.getElementById('compareChart'), {
+    type: 'bar',
+    data: {
+      labels: ['@benben_daman', '@offthegrid.sg', ...compAccounts.map(u => `@${u}`)],
+      datasets: [{ data: [benAvgL, otgAvgL, ...compAvgs], backgroundColor: ['#e8ff47','#ff6b35',...compAccounts.map((_,i) => accentColors[i % accentColors.length])], borderRadius: 6 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#6b6b7a', font: { family: 'DM Mono', size: 9 }, maxRotation: 35 }, grid: { display: false } }, y: { ticks: { color: '#6b6b7a', font: { family: 'DM Mono', size: 9 } }, grid: { color: 'rgba(34,34,46,0.8)' } } } }
+  });
+
+  // Pillar breakdown
+  const pillars = {};
+  cache.ben.forEach(p => { const c = categorise(p.caption); pillars[c] = (pillars[c] || 0) + 1; });
+  const total = cache.ben.length || 1;
+  document.getElementById('benPillars').innerHTML = Object.entries(pillars).sort((a,b) => b[1]-a[1]).map(([name, count]) => {
+    const pct = Math.round((count/total)*100);
+    return `<div class="pillar-row"><div class="pillar-meta"><span class="pillar-name">${name}</span><span class="pillar-pct">${count} · ${pct}%</span></div><div class="pillar-bar-track"><div class="pillar-bar-fill" style="width:${pct}%;background:${pillarColors[name]||'#888'}"></div></div></div>`;
+  }).join('');
+
+  // Top posts
+  const all = [
+    ...cache.ben.map(p => ({...p, atype:'ben'})),
+    ...cache.otg.map(p => ({...p, atype:'otg'})),
+    ...cache.comp.map(p => ({...p, atype:'comp'}))
+  ].filter(p => p.likes_count > 0).sort((a,b) => b.likes_count - a.likes_count).slice(0, 12);
+
+  document.getElementById('topPostsBody').innerHTML = all.map((p, i) => `
+    <tr>
+      <td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px">${i+1}</td>
+      <td><span class="badge badge-${p.atype}">@${p.username}</span></td>
+      <td><div class="post-caption">${p.caption || '—'}</div></td>
+      <td><span class="like-num" style="color:${p.atype==='ben'?'var(--ben)':p.atype==='otg'?'var(--otg)':'var(--accent3)'}">${p.likes_count}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px">${p.comments_count}</td>
+    </tr>
+  `).join('');
+
+  // Insights
+  const faPosts = cache.ben.filter(p => categorise(p.caption) === 'FA / Career');
+  const faAvg = avg(faPosts.map(p => p.likes_count));
+  const topBen = cache.ben.filter(p=>p.likes_count>0).sort((a,b)=>b.likes_count-a.likes_count)[0];
+  const topOTG = cache.otg.filter(p=>p.likes_count>0).sort((a,b)=>b.likes_count-a.likes_count)[0];
+
+  document.getElementById('insightsGrid').innerHTML = `
+    <div class="insight-card"><div class="insight-icon">🏆</div><div class="insight-title">Ben's Best Content</div><div class="insight-body">FA/Career posts avg <strong>${Math.round(faAvg)} likes</strong> — your top category at only ${Math.round((faPosts.length/total)*100)}% of posts. Post more of this.</div></div>
+    <div class="insight-card"><div class="insight-icon">🔥</div><div class="insight-title">Top Post — @benben_daman</div><div class="insight-body"><strong>${topBen?.likes_count||'—'} likes:</strong> "${(topBen?.caption||'').substring(0,70)}..."</div></div>
+    <div class="insight-card"><div class="insight-icon">📊</div><div class="insight-title">OTG Content Gap</div><div class="insight-body">Story-driven OTG posts average <strong>3x more likes</strong> than trip announcements. Lead with emotion, follow with details.</div></div>
+    <div class="insight-card"><div class="insight-icon">🎯</div><div class="insight-title">Top Post — @offthegrid.sg</div><div class="insight-body"><strong>${topOTG?.likes_count||'—'} likes:</strong> "${(topOTG?.caption||'').substring(0,70)}..."</div></div>
+  `;
+
+  show();
+}
+
+// ============================================================
+// RENDER BEN
+// ============================================================
+function renderBen() {
+  if (!cache.loaded) { loadData().then(renderBen); return; }
+  document.getElementById('ben-loading').style.display = 'none';
+  document.getElementById('ben-content').style.display = 'block';
+
+  const valid = cache.ben.filter(p => p.likes_count > 0);
+  const avgL = avg(cache.ben.map(p=>p.likes_count));
+  const avgC = avg(cache.ben.map(p=>p.comments_count));
+  const top = valid.sort((a,b)=>b.likes_count-a.likes_count)[0];
+
+  document.getElementById('ben-stats').innerHTML = `
+    <div class="stat-card ben"><div class="stat-label">Posts</div><div class="stat-value">${cache.ben.length}</div></div>
+    <div class="stat-card ben"><div class="stat-label">Avg Likes</div><div class="stat-value">${Math.round(avgL)}</div></div>
+    <div class="stat-card ben"><div class="stat-label">Avg Comments</div><div class="stat-value">${avgC.toFixed(1)}</div></div>
+    <div class="stat-card ben"><div class="stat-label">Top Post</div><div class="stat-value">${top?.likes_count||'—'}</div><div class="stat-sub">likes</div></div>
+  `;
+
+  const sorted = [...cache.ben].filter(p=>p.posted_at).sort((a,b)=>new Date(a.posted_at)-new Date(b.posted_at));
+  destroyChart('benTrend');
+  charts.benTrend = new Chart(document.getElementById('benTrendChart'), {
+    type: 'line',
+    data: { labels: sorted.map(p=>fmtDate(p.posted_at)), datasets: [{ label:'Likes', data: sorted.map(p=>p.likes_count>0?p.likes_count:null), borderColor:'#e8ff47', backgroundColor:'rgba(232,255,71,0.08)', tension:0.4, pointRadius:3, fill:true }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#6b6b7a',font:{family:'DM Mono',size:9},maxRotation:40},grid:{display:false}}, y:{ticks:{color:'#6b6b7a',font:{family:'DM Mono',size:9}},grid:{color:'rgba(34,34,46,0.8)'}} } }
+  });
+
+  const types = {};
+  cache.ben.forEach(p => { const t = categorise(p.caption); if(!types[t])types[t]=[]; if(p.likes_count>0)types[t].push(p.likes_count); });
+  const tLabels = Object.keys(types);
+  destroyChart('benType');
+  charts.benType = new Chart(document.getElementById('benTypeChart'), {
+    type:'bar',
+    data:{labels:tLabels,datasets:[{data:tLabels.map(t=>avg(types[t])),backgroundColor:tLabels.map(t=>pillarColors[t]||'#888'),borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6b6b7a',font:{family:'DM Mono',size:9},maxRotation:30},grid:{display:false}},y:{ticks:{color:'#6b6b7a',font:{family:'DM Mono',size:9}},grid:{color:'rgba(34,34,46,0.8)'}}}}
+  });
+
+  document.getElementById('benPostsBody').innerHTML = [...cache.ben].sort((a,b)=>b.likes_count-a.likes_count).map((p,i)=>`
+    <tr>
+      <td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px">${i+1}</td>
+      <td><div class="post-caption">${p.caption||'—'}</div></td>
+      <td><span style="font-size:10px;color:var(--muted)">${categorise(p.caption)}</span></td>
+      <td><span class="like-num" style="color:var(--ben)">${p.likes_count>0?p.likes_count:'—'}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px">${p.comments_count}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${fmtDate(p.posted_at)}</td>
+    </tr>
+  `).join('');
+}
+
+// ============================================================
+// RENDER OTG
+// ============================================================
+function renderOTG() {
+  if (!cache.loaded) { loadData().then(renderOTG); return; }
+  document.getElementById('otg-loading').style.display = 'none';
+  document.getElementById('otg-content').style.display = 'block';
+
+  const avgL = avg(cache.otg.map(p=>p.likes_count));
+  const avgC = avg(cache.otg.map(p=>p.comments_count));
+  const top = [...cache.otg].filter(p=>p.likes_count>0).sort((a,b)=>b.likes_count-a.likes_count)[0];
+
+  document.getElementById('otg-stats').innerHTML = `
+    <div class="stat-card otg"><div class="stat-label">Posts</div><div class="stat-value">${cache.otg.length}</div></div>
+    <div class="stat-card otg"><div class="stat-label">Avg Likes</div><div class="stat-value">${Math.round(avgL)}</div></div>
+    <div class="stat-card otg"><div class="stat-label">Avg Comments</div><div class="stat-value">${avgC.toFixed(1)}</div></div>
+    <div class="stat-card otg"><div class="stat-label">Top Post</div><div class="stat-value">${top?.likes_count||'—'}</div><div class="stat-sub">likes</div></div>
+  `;
+
+  const sorted = [...cache.otg].filter(p=>p.posted_at).sort((a,b)=>new Date(a.posted_at)-new Date(b.posted_at));
+  destroyChart('otgTrend');
+  charts.otgTrend = new Chart(document.getElementById('otgTrendChart'), {
+    type:'line',
+    data:{labels:sorted.map(p=>fmtDate(p.posted_at)),datasets:[{label:'Likes',data:sorted.map(p=>p.likes_count>0?p.likes_count:null),borderColor:'#ff6b35',backgroundColor:'rgba(255,107,53,0.08)',tension:0.4,pointRadius:3,fill:true}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6b6b7a',font:{family:'DM Mono',size:9},maxRotation:40},grid:{display:false}},y:{ticks:{color:'#6b6b7a',font:{family:'DM Mono',size:9}},grid:{color:'rgba(34,34,46,0.8)'}}}}
+  });
+
+  const months = {};
+  cache.otg.filter(p=>p.posted_at).forEach(p => { const m = new Date(p.posted_at).toLocaleDateString('en-SG',{month:'short',year:'2-digit'}); months[m]=(months[m]||0)+1; });
+  const mKeys = Object.keys(months).slice(-8);
+  destroyChart('otgFreq');
+  charts.otgFreq = new Chart(document.getElementById('otgFreqChart'), {
+    type:'bar',
+    data:{labels:mKeys,datasets:[{data:mKeys.map(k=>months[k]),backgroundColor:'rgba(255,107,53,0.7)',borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6b6b7a',font:{family:'DM Mono',size:10}},grid:{display:false}},y:{ticks:{color:'#6b6b7a',font:{family:'DM Mono',size:10}},grid:{color:'rgba(34,34,46,0.8)'}}}}
+  });
+
+  document.getElementById('otgPostsBody').innerHTML = [...cache.otg].sort((a,b)=>b.likes_count-a.likes_count).map((p,i)=>`
+    <tr>
+      <td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px">${i+1}</td>
+      <td><div class="post-caption">${p.caption||'—'}</div></td>
+      <td><span class="like-num" style="color:var(--otg)">${p.likes_count>0?p.likes_count:'—'}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px">${p.comments_count}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)">${fmtDate(p.posted_at)}</td>
+    </tr>
+  `).join('');
+}
+
+// ============================================================
+// RENDER COMPETITORS
+// ============================================================
+function renderCompetitors() {
+  if (!cache.loaded) { loadData().then(renderCompetitors); return; }
+  document.getElementById('comp-loading').style.display = 'none';
+  document.getElementById('comp-content').style.display = 'block';
+
+  const accounts = [...new Set(cache.comp.map(p=>p.username))];
+  document.getElementById('competitorGrid').innerHTML = accounts.map((u,i)=>{
+    const posts = cache.comp.filter(p=>p.username===u);
+    const al = avg(posts.map(p=>p.likes_count));
+    const ac = avg(posts.map(p=>p.comments_count));
+    const top = posts.sort((a,b)=>b.likes_count-a.likes_count)[0];
+    const color = accentColors[i % accentColors.length];
+    return `<div class="compare-card">
+      <div class="compare-handle"><span class="dot" style="background:${color}"></span>@${u}</div>
+      <div class="compare-metric"><span class="compare-metric-label">AVG LIKES</span><span class="compare-metric-val" style="color:${color}">${Math.round(al)||'—'}</span></div>
+      <div class="compare-metric"><span class="compare-metric-label">AVG COMMENTS</span><span class="compare-metric-val">${ac.toFixed(1)}</span></div>
+      <div class="compare-metric"><span class="compare-metric-label">POSTS</span><span class="compare-metric-val">${posts.length}</span></div>
+      <div class="compare-metric"><span class="compare-metric-label">TOP POST</span><span class="compare-metric-val" style="color:${color}">${top?.likes_count||'—'}</span></div>
+    </div>`;
+  }).join('');
+
+  const benAvgL = avg(cache.ben.map(p=>p.likes_count));
+  const otgAvgL = avg(cache.otg.map(p=>p.likes_count));
+  const compAvgs = accounts.map(u=>avg(cache.comp.filter(p=>p.username===u).map(p=>p.likes_count)));
+  destroyChart('compBar');
+  charts.compBar = new Chart(document.getElementById('compBarChart'), {
+    type:'bar',
+    data:{labels:['@benben_daman','@offthegrid.sg',...accounts.map(u=>`@${u}`)],datasets:[{data:[benAvgL,otgAvgL,...compAvgs],backgroundColor:['#e8ff47','#ff6b35',...accounts.map((_,i)=>accentColors[i%accentColors.length])],borderRadius:8}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6b6b7a',font:{family:'DM Mono',size:9}},grid:{color:'rgba(34,34,46,0.8)'}},y:{ticks:{color:'#aaa',font:{family:'DM Mono',size:10}},grid:{display:false}}}}
+  });
+
+  document.getElementById('compPostsBody').innerHTML = [...cache.comp].filter(p=>p.likes_count>0).sort((a,b)=>b.likes_count-a.likes_count).slice(0,12).map((p,i)=>`
+    <tr>
+      <td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px">${i+1}</td>
+      <td><span class="badge badge-comp">@${p.username}</span></td>
+      <td><div class="post-caption">${p.caption||'—'}</div></td>
+      <td><span class="like-num" style="color:var(--accent3)">${p.likes_count}</span></td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px">${p.comments_count}</td>
+    </tr>
+  `).join('');
+}
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+let currentTab = 'overview';
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById(`panel-${name}`).classList.add('active');
+  currentTab = name;
+  if(name==='overview') renderOverview();
+  if(name==='ben') renderBen();
+  if(name==='otg') renderOTG();
+  if(name==='competitors') renderCompetitors();
+}
+
+function renderCurrentTab() {
+  if(currentTab==='overview') renderOverview();
+  if(currentTab==='ben') renderBen();
+  if(currentTab==='otg') renderOTG();
+  if(currentTab==='competitors') renderCompetitors();
+}
+
+// ============================================================
+// SAMPLE DATA LOADERS
+// ============================================================
+const SAMPLE_BEN_JSON = JSON.stringify([
+  {caption:"What am I thinking about… AIA #1 agency Q1 2025",ownerUsername:"benben_daman",likesCount:266,commentsCount:9,timestamp:"2025-04-06T09:53:34.000Z",url:""},
+  {caption:"1000 likes and our boss gives us $500 — Top District AIA",ownerUsername:"benben_daman",likesCount:168,commentsCount:10,timestamp:"2026-04-11T13:13:07.000Z",url:""},
+  {caption:"Xinjiang you were amazing",ownerUsername:"benben_daman",likesCount:257,commentsCount:11,timestamp:"2025-11-06T10:36:09.000Z",url:""},
+  {caption:"You were beautiful Norway!",ownerUsername:"benben_daman",likesCount:197,commentsCount:1,timestamp:"2025-09-15T10:52:50.000Z",url:""},
+  {caption:"Coming into 2025 — 117 days travelling, FA journey, OTG year wrap",ownerUsername:"benben_daman",likesCount:214,commentsCount:9,timestamp:"2025-12-31T15:56:10.000Z",url:""},
+  {caption:"The little moments… sharing laugh on mountain",ownerUsername:"benben_daman",likesCount:73,commentsCount:5,timestamp:"2026-02-06T10:07:52.000Z",url:""},
+  {caption:"What a refreshing start of 2026 — JB, Guangzhou AIA, MDRT Yacht",ownerUsername:"benben_daman",likesCount:174,commentsCount:6,timestamp:"2026-01-29T03:44:54.000Z",url:""}
+], null, 2);
+
+function loadSample(type) {
+  if (type === 'ben') document.getElementById('benJson').value = SAMPLE_BEN_JSON;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+loadData().then(() => renderOverview());
+</script>
+</body>
+</html>
