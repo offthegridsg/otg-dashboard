@@ -480,11 +480,19 @@ async function sbFetch(path, options = {}) {
     headers: mergedHeaders
   });
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(err);
+    let errText = '';
+    try { errText = await res.text(); } catch(e) {}
+    throw new Error(`HTTP ${res.status}: ${errText}`);
   }
-  if (res.status === 204) return [];
-  return res.json();
+  // 204 No Content (DELETE/some POSTs return empty body)
+  if (res.status === 204 || res.headers.get('content-length') === '0') return [];
+  const text = await res.text();
+  if (!text || text.trim() === '') return [];
+  try {
+    return JSON.parse(text);
+  } catch(e) {
+    return [];
+  }
 }
 
 // ============================================================
